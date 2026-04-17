@@ -11,6 +11,10 @@ function AdminDashboard() {
   const [reports, setReports] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [modalData, setModalData] = useState(null);
+  const [selectedUser, setSelectedUser] = useState("");
+const [taskTitle, setTaskTitle] = useState("");
+const [taskDesc, setTaskDesc] = useState("");
+const [editingTask, setEditingTask] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -58,12 +62,119 @@ const fetchData = async () => {
     if (!groupedByDate[d]) groupedByDate[d] = [];
     groupedByDate[d].push(log);
   });
+  const handleSaveTask = async () => {
+  if (!selectedUser || !taskTitle) {
+    return alert("Fill all fields");
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+
+  if (editingTask) {
+    // ✏️ UPDATE
+    await supabase
+      .from("tasks")
+      .update({
+        title: taskTitle,
+        description: taskDesc,
+        assigned_to: selectedUser,
+      })
+      .eq("id", editingTask.id);
+
+    alert("Task Updated ✅");
+  } else {
+    // ➕ CREATE
+    await supabase.from("tasks").insert([
+      {
+        title: taskTitle,
+        description: taskDesc,
+        assigned_to: selectedUser,
+        status: "pending",
+        task_date: today,
+      },
+    ]);
+
+    alert("Task Assigned ✅");
+  }
+
+  // reset
+  setTaskTitle("");
+  setTaskDesc("");
+  setSelectedUser("");
+  setEditingTask(null);
+
+  fetchData();
+};
+const handleDeleteTask = async (id) => {
+  const confirm = window.confirm("Delete this task?");
+  if (!confirm) return;
+
+  await supabase.from("tasks").delete().eq("id", id);
+
+  alert("Task Deleted ❌");
+  fetchData();
+};
+const handleEditTask = (task) => {
+  setEditingTask(task);
+  setTaskTitle(task.title);
+  setTaskDesc(task.description);
+  setSelectedUser(task.assigned_to);
+};
 
   return (
     
     <div className="admin-dashboard-adm">
       <h1 className="dashboard-title-adm">Admin Control Center</h1>
+<div className="task-create-box-adm">
+  <h2>{editingTask ? "Edit Task" : "Create Task"}</h2>
 
+  <select
+    value={selectedUser}
+    onChange={(e) => setSelectedUser(e.target.value)}
+  >
+    <option value="">Select User</option>
+    {users
+      .filter((u) => u.role !== "admin")
+      .map((u) => (
+        <option key={u.id} value={u.email}>
+          {u.name}
+        </option>
+      ))}
+  </select>
+
+  <input
+    placeholder="Task Title"
+    value={taskTitle}
+    onChange={(e) => setTaskTitle(e.target.value)}
+  />
+
+  <textarea
+    placeholder="Task Description"
+    value={taskDesc}
+    onChange={(e) => setTaskDesc(e.target.value)}
+  />
+
+  <button onClick={handleSaveTask}>
+    {editingTask ? "Update Task" : "Assign Task"}
+  </button>
+</div>
+<h2>All Tasks</h2>
+
+{tasks.map((t) => (
+  <div key={t.id} className="task-card-adm">
+    <h3>{t.title}</h3>
+    <p>{t.description}</p>
+    <p><b>User:</b> {t.assigned_to}</p>
+    <p>Status: {t.status}</p>
+
+    <button onClick={() => handleEditTask(t)}>
+      Edit
+    </button>
+
+    <button onClick={() => handleDeleteTask(t.id)}>
+      Delete
+    </button>
+  </div>
+))}
       <div className="stats-grid-adm">
         <div className="stat-card-adm">
           <h2>{users.length}</h2>
