@@ -460,3 +460,54 @@
 .task-create-box-adm button:active {
   transform: scale(0.95);
 }
+.task-card-adm {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 15px;
+  color: #fff;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.task-card-adm h3 {
+  color: #38bdf8;
+  margin-bottom: 5px;
+}
+
+.task-card-adm p {
+  font-size: 14px;
+  color: #cbd5f5;
+}
+
+/* Buttons container */
+.task-card-adm button {
+  margin-right: 10px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+/* Edit button */
+.task-card-adm button:first-of-type {
+  background: #22c55e;
+  color: white;
+}
+
+.task-card-adm button:first-of-type:hover {
+  background: #16a34a;
+}
+
+/* Delete button */
+.task-card-adm button:last-of-type {
+  background: #ef4444;
+  color: white;
+}
+
+.task-card-adm button:last-of-type:hover {
+  background: #dc2626;
+}
