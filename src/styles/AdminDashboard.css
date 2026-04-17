@@ -265,3 +265,129 @@
   background: #38bdf8;
   border-radius: 10px;
 }
+.report-modal-adm {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex;              /* IMPORTANT */
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;              /* IMPORTANT */
+}
+
+.report-content-adm {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+}
+/* Overlay */
+.report-modal-adm {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  background: rgba(15, 23, 42, 0.7); /* dark blur bg */
+  backdrop-filter: blur(6px);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 9999;
+}
+
+/* Modal Box */
+.report-content-adm {
+  width: 450px;
+  max-height: 80vh;
+  overflow-y: auto;
+
+  background: linear-gradient(135deg, #ffffff, #f1f5f9);
+  border-radius: 16px;
+  padding: 25px;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  animation: popupFade 0.3s ease;
+}
+
+/* Headings */
+.report-content-adm h2 {
+  margin-bottom: 15px;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.report-content-adm h3 {
+  margin-top: 15px;
+  margin-bottom: 5px;
+  color: #1e293b;
+  font-size: 16px;
+  border-left: 4px solid #3b82f6;
+  padding-left: 8px;
+}
+
+/* Text */
+.report-content-adm p {
+  color: #334155;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Task List */
+.report-content-adm ul {
+  padding-left: 20px;
+}
+
+.report-content-adm li {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #475569;
+}
+
+/* Status Highlight */
+.report-content-adm li b {
+  color: #2563eb;
+}
+
+/* Close Button */
+.report-content-adm button {
+  margin-top: 20px;
+  width: 100%;
+
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+
+  padding: 10px;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.report-content-adm button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+}
+
+/* Animation */
+@keyframes popupFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
