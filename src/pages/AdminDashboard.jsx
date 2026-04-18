@@ -29,7 +29,6 @@ const fetchData = async () => {
   const { data: reportsData } = await supabase
     .from("daily_reports")
     .select("*");
-
   const { data: tasksData } = await supabase
     .from("tasks")
     .select("*");

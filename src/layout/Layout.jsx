@@ -10,7 +10,7 @@ function Layout() {
       <Sidebar />
 
       <div className="content">
-        <Outlet />
+        <Outlet /> 
       </div>
     </div>
   );
