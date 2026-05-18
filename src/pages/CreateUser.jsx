@@ -12,13 +12,22 @@ function CreateUser() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // ✅ Loader State
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     init();
   }, []);
 
   const init = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data } = await supabase
       .from("users")
@@ -28,8 +37,10 @@ function CreateUser() {
 
     if (data?.role === "admin") {
       setIsAdmin(true);
-      fetchUsers();
+      await fetchUsers();
     }
+
+    setLoading(false);
   };
 
   const fetchUsers = async () => {
@@ -37,8 +48,18 @@ function CreateUser() {
       .from("users")
       .select("*")
       .order("id");
+
     setUsers(data || []);
   };
+
+  // ✅ Premium Loader
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="loader"></div>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return <h2 className="user-access-denied-usr">Access Denied</h2>;
@@ -53,10 +74,13 @@ function CreateUser() {
   };
 
   const openEdit = (u) => {
+    console.log(u);
+
     if (u.role === "admin") {
       alert("Admin cannot be edited");
       return;
     }
+
     setEditUser(u);
     setName(u.name);
     setEmail(u.email);
@@ -67,23 +91,39 @@ function CreateUser() {
   const handleSave = async () => {
     if (!name || !email) return alert("Fill all fields");
 
-    // ✅ EDIT USER (only profile table)
+    // ✅ EDIT USER
     if (editUser) {
+      console.log(editUser);
+
       await supabase
         .from("users")
         .update({ name, email })
         .eq("id", editUser.id);
 
+      // ✅ update password only if entered
+      if (password) {
+        await supabase.auth.admin.updateUserById(
+          editUser.auth_id,
+          {
+            password: password,
+          }
+        );
+      }
+
       alert("User updated");
-    } 
-    // ✅ CREATE USER (Auth + table sync)
+    }
+
+    // ✅ CREATE USER
     else {
       if (!password) return alert("Password required");
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { data, error } =
+        await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+      const authId = data.user.id;
 
       if (error) {
         alert(error.message);
@@ -96,6 +136,7 @@ function CreateUser() {
           name,
           email,
           role: "user",
+          auth_id: authId,
         },
       ]);
 
@@ -103,6 +144,7 @@ function CreateUser() {
     }
 
     setShowModal(false);
+
     fetchUsers();
   };
 
@@ -112,10 +154,13 @@ function CreateUser() {
       return;
     }
 
-    // delete from profile table
-    await supabase.from("users").delete().eq("id", id);
+    await supabase
+      .from("users")
+      .delete()
+      .eq("id", id);
 
     alert("User removed from system");
+
     fetchUsers();
   };
 
@@ -123,6 +168,7 @@ function CreateUser() {
     <div className="emp-container-usr">
       <div className="emp-header-usr">
         <h2>Employee Management</h2>
+
         <button className="add-btn-usr" onClick={openAdd}>
           + Add Employee
         </button>
@@ -137,6 +183,7 @@ function CreateUser() {
             <th>Actions</th>
           </tr>
         </thead>
+
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
@@ -144,14 +191,18 @@ function CreateUser() {
                 <div className="avatar-usr">
                   {u.name?.charAt(0).toUpperCase()}
                 </div>
+
                 {u.name}
               </td>
+
               <td>{u.email}</td>
+
               <td>
                 <span className={`role-usr ${u.role}-usr`}>
                   {u.role}
                 </span>
               </td>
+
               <td>
                 {u.role !== "admin" ? (
                   <>
@@ -161,10 +212,15 @@ function CreateUser() {
                     >
                       Edit
                     </button>
+
                     <button
                       className="delete-usr"
                       onClick={() =>
-                        handleDelete(u.id, u.role, u.email)
+                        handleDelete(
+                          u.id,
+                          u.role,
+                          u.email
+                        )
                       }
                     >
                       Delete
@@ -184,7 +240,11 @@ function CreateUser() {
       {showModal && (
         <div className="modal-usr">
           <div className="modal-card-usr">
-            <h3>{editUser ? "Edit Employee" : "Add Employee"}</h3>
+            <h3>
+              {editUser
+                ? "Edit Employee"
+                : "Add Employee"}
+            </h3>
 
             <input
               placeholder="Full Name"
@@ -198,16 +258,15 @@ function CreateUser() {
               onChange={(e) => setEmail(e.target.value)}
             />
 
-            {!editUser && (
-              <input
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            )}
+            <input
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
             <div className="modal-actions-usr">
               <button onClick={handleSave}>Save</button>
+
               <button
                 className="cancel-usr"
                 onClick={() => setShowModal(false)}
@@ -217,9 +276,9 @@ function CreateUser() {
             </div>
           </div>
         </div>
-      )}
+      )} 
     </div>
   );
 }
 
-export default CreateUser;
+export default CreateUser; 

@@ -118,3 +118,7 @@
 .delete-btn-tml:hover {
   transform: scale(1.1);
 }
+/* TIMER BUTTON GROUP */
+.timer-box-tml button {
+  margin-right: 10px;
+}

@@ -5,14 +5,61 @@ import "../styles/TimeLog.css";
 function TimeLog() {
   const [projects, setProjects] = useState([]);
   const [entries, setEntries] = useState([]);
-  const [hours, setHours] = useState("");
   const [selectedProject, setSelectedProject] = useState("");
-  const [editId, setEditId] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
+
+  // ✅ Loader State
+  const [loading, setLoading] = useState(true);
+
+  // TIMER STATES
+  const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     init();
+    restoreTimer();
   }, []);
+
+  // TIMER LOOP
+  useEffect(() => {
+    let interval;
+
+    if (isRunning && !isPaused) {
+      interval = setInterval(() => {
+        setElapsed(Date.now() - startTime);
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [isRunning, isPaused, startTime]);
+
+  // SAVE TIMER STATE
+  useEffect(() => {
+    localStorage.setItem(
+      "timerState",
+      JSON.stringify({
+        isRunning,
+        isPaused,
+        startTime,
+        elapsed,
+        selectedProject,
+      })
+    );
+  }, [isRunning, isPaused, startTime, elapsed, selectedProject]);
+
+  const restoreTimer = () => {
+    const saved = JSON.parse(localStorage.getItem("timerState") || "null");
+
+    if (saved) {
+      setIsRunning(saved.isRunning);
+      setIsPaused(saved.isPaused);
+      setStartTime(saved.startTime);
+      setElapsed(saved.elapsed);
+      setSelectedProject(saved.selectedProject);
+    }
+  };
 
   const init = async () => {
     const {
@@ -20,23 +67,21 @@ function TimeLog() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("User not logged in");
-      return;
+      setLoading(false);
+      return alert("User not logged in");
     }
 
     setUserEmail(user.email);
-    fetchData(user.email);
+
+    await fetchData(user.email);
+
+    setLoading(false);
   };
 
   const fetchData = async (email) => {
-    // ✅ Only projects assigned to this user
-    const { data: allProjects, error: projectError } =
-      await supabase.from("projects").select("*");
-
-    if (projectError) {
-      console.log("Project Fetch Error:", projectError);
-      return;
-    }
+    const { data: allProjects } = await supabase
+      .from("projects")
+      .select("*");
 
     const userProjects = (allProjects || []).filter((p) =>
       p?.assigneduser?.includes(email)
@@ -44,82 +89,116 @@ function TimeLog() {
 
     setProjects(userProjects);
 
-    // ✅ Only this user's entries
-    const { data: storedEntries, error: entryError } = await supabase
-      .from("timeEntries")
+    const { data: storedEntries } = await supabase
+      .from("timeentries")
       .select("*")
       .eq("useremail", email);
-
-    if (entryError) {
-      console.log("Entry Fetch Error:", entryError);
-      return;
-    }
 
     setEntries(storedEntries || []);
   };
 
-  const addOrUpdate = async () => {
-    if (!selectedProject || !hours) {
-      return alert("Fill all fields");
-    }
+  // FORMAT
+  const formatHours = (hours) => {
+    const totalSeconds = Math.floor(hours * 3600);
 
-    if (editId) {
-      const { error } = await supabase
-        .from("timeEntries")
-        .update({
-          hours: Number(hours),
-        })
-        .eq("id", editId);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
 
-      if (error) return console.log(error);
-
-      const updated = entries.map((e) =>
-        e.id === editId ? { ...e, hours: Number(hours) } : e
-      );
-
-      setEntries(updated);
-      setEditId(null);
-    } else {
-      const { data, error } = await supabase
-        .from("timeEntries")
-        .insert([
-          {
-            useremail: userEmail,
-            projectid: selectedProject,
-            hours: Number(hours),
-            date: new Date().toISOString(),
-          },
-        ])
-        .select();
-
-      if (error) return console.log(error);
-
-      if (data && data.length > 0) {
-        setEntries([...entries, data[0]]);
-      }
-    }
-
-    setHours("");
-    setSelectedProject("");
+    return `${h}h ${m}m ${s}s`;
   };
 
-  const handleEdit = (entry) => {
-    setEditId(entry.id);
-    setHours(entry.hours);
-    setSelectedProject(entry.projectid);
+  const formatTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+
+    return `${h}h ${m}m ${s}s`;
+  };
+
+  // TIMER ACTIONS
+  const startTimer = () => {
+    if (!selectedProject) return alert("Select project first");
+
+    setStartTime(Date.now());
+    setElapsed(0);
+    setIsRunning(true);
+    setIsPaused(false);
+  };
+
+  const pauseTimer = () => {
+    setIsPaused(true);
+  };
+
+  const resumeTimer = () => {
+    setIsPaused(false);
+    setStartTime(Date.now() - elapsed);
+  };
+
+  const stopTimer = async () => {
+    if (!userEmail || !selectedProject) {
+      return alert("Missing data bhai");
+    }
+
+    setIsRunning(false);
+    setIsPaused(false);
+
+    const totalHours = elapsed / 3600000;
+
+    console.log("Sending data:", {
+      userEmail,
+      selectedProject,
+      totalHours,
+    });
+
+    const { data, error } = await supabase
+      .from("timeentries")
+      .insert([
+        {
+          useremail: userEmail,
+          projectid: selectedProject,
+          hours: totalHours,
+          date: new Date().toISOString(),
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.log("🔥 INSERT ERROR:", error);
+      alert(error.message);
+      return;
+    }
+
+    if (data) setEntries([...entries, data[0]]);
+
+    setElapsed(0);
+    setSelectedProject("");
+    localStorage.removeItem("timerState");
   };
 
   const handleDelete = async (id) => {
-    const { error } = await supabase
-      .from("timeEntries")
-      .delete()
-      .eq("id", id);
-
-    if (error) return console.log(error);
-
-    const updated = entries.filter((e) => e.id !== id);
-    setEntries(updated);
+    await supabase.from("timeentries").delete().eq("id", id);
+    setEntries(entries.filter((e) => e.id !== id));
   };
+
+  // TOTAL HOURS PER PROJECT
+  const projectTotals = {};
+
+  entries.forEach((e) => {
+    projectTotals[e.projectid] =
+      (projectTotals[e.projectid] || 0) + e.hours;
+  });
+
+  // ✅ Loader UI
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="loader"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="time-log-container-tml">
@@ -128,8 +207,10 @@ function TimeLog() {
       <select
         value={selectedProject}
         onChange={(e) => setSelectedProject(e.target.value)}
+        disabled={isRunning}
       >
         <option value="">Select Project</option>
+
         {projects.map((p) => (
           <option key={p.id} value={p.id}>
             {p.title}
@@ -137,16 +218,57 @@ function TimeLog() {
         ))}
       </select>
 
-      <input
-        type="number"
-        placeholder="Enter Hours"
-        value={hours}
-        onChange={(e) => setHours(e.target.value)}
-      />
+      {/* TIMER UI */}
+      <div className={`timer-box-tml ${isRunning ? "timer-running" : ""}`}>
+        <h3 className="timer-text-tml">{formatTime(elapsed)}</h3>
 
-      <button className="main-btn-tml" onClick={addOrUpdate}>
-        {editId ? "Update Entry" : "Add Entry"}
-      </button>
+        {!isRunning ? (
+          <button onClick={startTimer} className="main-btn-tml">
+            Start
+          </button>
+        ) : isPaused ? (
+          <>
+            <button onClick={resumeTimer} className="main-btn-tml">
+              Resume
+            </button>
+
+            <button onClick={stopTimer} className="main-btn-tml">
+              Stop
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={pauseTimer} className="main-btn-tml">
+              Pause
+            </button>
+
+            <button onClick={stopTimer} className="main-btn-tml">
+              Stop
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* TOTAL SUMMARY */}
+      <h3>Project Summary</h3>
+
+      <table className="entry-table-tml">
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th>Total Hours</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {Object.keys(projectTotals).map((pid) => (
+            <tr key={pid}>
+              <td>{projects.find((p) => p.id == pid)?.title}</td>
+              <td>{formatHours(projectTotals[pid])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <h3>Your Entries</h3>
 
@@ -162,18 +284,11 @@ function TimeLog() {
         <tbody>
           {entries.map((e) => (
             <tr key={e.id}>
-              <td>
-                {projects.find((p) => p.id == e.projectid)?.title}
-              </td>
-              <td>{e.hours} hrs</td>
-              <td>
-                <button
-                  className="edit-btn-tml"
-                  onClick={() => handleEdit(e)}
-                >
-                  Edit
-                </button>
+              <td>{projects.find((p) => p.id == e.projectid)?.title}</td>
 
+              <td>{formatHours(e.hours)}</td>
+
+              <td>
                 <button
                   className="delete-btn-tml"
                   onClick={() => handleDelete(e.id)}

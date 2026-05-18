@@ -37,8 +37,6 @@
   font-size: 36px;
   margin-bottom: 40px;
   letter-spacing: 1px;
-  /* background: linear-gradient(90deg, #38bdf8, #6366f1);
-  -webkit-text-fill-color: transparent; */
   font-weight: 700;
 }
 
@@ -86,4 +84,34 @@
 
 .purple-dsb {
   border: 2px solid #a855f7;
+}
+
+/* ===== Premium Loader ===== */
+
+.loader-container {
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loader {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 6px solid rgba(255,255,255,0.1);
+  border-top: 6px solid #38bdf8;
+  border-right: 6px solid #6366f1;
+  animation: premiumSpin 1s linear infinite;
+  box-shadow:
+    0 0 25px rgba(56,189,248,0.5),
+    0 0 45px rgba(99,102,241,0.3);
+}
+
+@keyframes premiumSpin {
+  100% {
+    transform: rotate(360deg);
+  }
 }

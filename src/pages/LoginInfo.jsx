@@ -6,29 +6,36 @@ function LoginInfo() {
   const [logs, setLogs] = useState([]);
   const [user, setUser] = useState(null);
 
+  // ✅ Loader State
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     getUserAndLogs();
   }, []);
+
   const formatDateTime = (d) => {
-  return d
-    ? new Date(d).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : "Active";
-};
+    return d
+      ? new Date(d).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "Active";
+  };
 
   const getUserAndLogs = async () => {
     // ✅ Get user from Supabase Auth
-    
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     setUser(user);
 
@@ -39,10 +46,17 @@ function LoginInfo() {
       .order("id", { ascending: false });
 
     setLogs(data || []);
+
+    setLoading(false);
   };
 
-  if (!user) {
-    return <h2 style={{ padding: 20 }}>Auth loading... wait 1 sec</h2>;
+  // ✅ Loader UI
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="loader"></div>
+      </div>
+    );
   }
 
   return (
@@ -56,7 +70,8 @@ function LoginInfo() {
           </p>
 
           <p>
-            <strong>Logout:</strong> {formatDateTime(log.logout)|| "Active"}
+            <strong>Logout:</strong>{" "}
+            {formatDateTime(log.logout) || "Active"}
           </p>
         </div>
       ))}

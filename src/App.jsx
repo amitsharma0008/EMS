@@ -12,11 +12,13 @@ import LoginInfo from "./pages/LoginInfo";
 import AdminDashboard from "./pages/AdminDashboard";
 import AddReport from "./pages/AddReport";
 import MyTasks from "./pages/MyTasks";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 
 function App() {
 
-  // 🔥 Default Admin Create (same as tera)
+  // 🔥 Default Admin Create
   useEffect(() => {
     const users = JSON.parse(localStorage.getItem("users"));
 
@@ -51,6 +53,8 @@ function App() {
           <Route path="/add-report" element={<AddReport />} />
           <Route path="/my-tasks" element={<MyTasks />} />
         </Route>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
       </Routes>
     </BrowserRouter>

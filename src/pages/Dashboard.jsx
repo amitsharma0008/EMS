@@ -10,6 +10,7 @@ function Dashboard() {
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
   const [timeEntries, setTimeEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getUserAndData();
@@ -21,7 +22,10 @@ function Dashboard() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     setUser(user);
 
@@ -36,11 +40,17 @@ function Dashboard() {
 
     setProjects(projectsData || []);
     setTimeEntries(timeData || []);
+
+    setLoading(false);
   };
 
-  // ✅ Wait for auth
-  if (!user) {
-    return <h2 style={{ padding: 20 }}>Auth loading... wait 1 sec</h2>;
+  // ✅ Loader
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="loader"></div>
+      </div>
+    );
   }
 
   const userProjects = projects.filter((p) =>
@@ -52,27 +62,27 @@ function Dashboard() {
     .reduce((acc, curr) => acc + Number(curr.hours), 0);
 
   const handleLogout = async () => {
-  const { data: logs } = await supabase
-    .from("loginLogs")
-    .select("*")
-    .eq("email", user.email)
-    .is("logout", null)
-    .order("id", {
-      ascending: false,
-    });
-
-  if (logs && logs.length > 0) {
-    await supabase
+    const { data: logs } = await supabase
       .from("loginLogs")
-      .update({
-        logout: new Date(), // ✅ FIXED
-      })
-      .eq("id", logs[0].id);
-  }
+      .select("*")
+      .eq("email", user.email)
+      .is("logout", null)
+      .order("id", {
+        ascending: false,
+      });
 
-  await supabase.auth.signOut();
-  navigate("/");
-};
+    if (logs && logs.length > 0) {
+      await supabase
+        .from("loginLogs")
+        .update({
+          logout: new Date(),
+        })
+        .eq("id", logs[0].id);
+    }
+
+    await supabase.auth.signOut();
+    navigate("/");
+  };
 
   return (
     <div className="dashboard-dsb">

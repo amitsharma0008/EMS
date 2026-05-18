@@ -5,188 +5,242 @@ import "../styles/AdminDashboard.css";
 function AdminDashboard() {
   const [logs, setLogs] = useState([]);
   const [users, setUsers] = useState([]);
-  const [timeEntries, setTimeEntries] = useState([]);
+  const [timeentries, setTimeentries] = useState([]);
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState("");
   const [reports, setReports] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [modalData, setModalData] = useState(null);
+
   const [selectedUser, setSelectedUser] = useState("");
-const [taskTitle, setTaskTitle] = useState("");
-const [taskDesc, setTaskDesc] = useState("");
-const [editingTask, setEditingTask] = useState(null);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDesc, setTaskDesc] = useState("");
+  const [editingTask, setEditingTask] = useState(null);
+
+  // ✅ Loader State
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-const fetchData = async () => {
-  const { data: logsData } = await supabase.from("loginLogs").select("*");
-  const { data: usersData } = await supabase.from("users").select("*");
-  const { data: timeData } = await supabase.from("timeEntries").select("*");
-  const { data: projectsData } = await supabase.from("projects").select("*");
+  const fetchData = async () => {
+    const { data: logsData } = await supabase
+      .from("loginLogs")
+      .select("*");
 
-  const { data: reportsData } = await supabase
-    .from("daily_reports")
-    .select("*");
-  const { data: tasksData } = await supabase
-    .from("tasks")
-    .select("*");
+    const { data: usersData } = await supabase
+      .from("users")
+      .select("*");
 
-  setReports(reportsData || []);
-  setTasks(tasksData || []);
-  setLogs(logsData || []);
-  setUsers(usersData || []);
-  setTimeEntries(timeData || []);
-  setProjects(projectsData || []);
-};
+    const { data: timeData } = await supabase
+      .from("timeentries")
+      .select("*");
+
+    const { data: projectsData } = await supabase
+      .from("projects")
+      .select("*");
+
+    const { data: reportsData } = await supabase
+      .from("daily_reports")
+      .select("*");
+
+    const { data: tasksData } = await supabase
+      .from("tasks")
+      .select("*");
+
+    setReports(reportsData || []);
+    setTasks(tasksData || []);
+    setLogs(logsData || []);
+    setUsers(usersData || []);
+    setTimeentries(timeData || []);
+    setProjects(projectsData || []);
+
+    setLoading(false);
+  };
 
   const getDate = (d) => new Date(d).toLocaleDateString();
+
+  const formatHours = (hours) => {
+    const totalSeconds = Math.floor(hours * 3600);
+
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+
+    return `${h}h ${m}m`;
+  };
+
   const formatDateTime = (d) => {
-  return d
-    ? new Date(d).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : "Active";
-};
+    return d
+      ? new Date(d).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "Active";
+  };
 
   const groupedByDate = {};
 
   logs.forEach((log) => {
     const d = getDate(log.login);
+
     if (!groupedByDate[d]) groupedByDate[d] = [];
+
     groupedByDate[d].push(log);
   });
+
   const handleSaveTask = async () => {
-  if (!selectedUser || !taskTitle) {
-    return alert("Fill all fields");
+    if (!selectedUser || !taskTitle) {
+      return alert("Fill all fields");
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    if (editingTask) {
+      await supabase
+        .from("tasks")
+        .update({
+          title: taskTitle,
+          description: taskDesc,
+          assigned_to: selectedUser,
+        })
+        .eq("id", editingTask.id);
+
+      alert("Task Updated ✅");
+    } else {
+      await supabase.from("tasks").insert([
+        {
+          title: taskTitle,
+          description: taskDesc,
+          assigned_to: selectedUser,
+          status: "pending",
+          task_date: today,
+        },
+      ]);
+
+      alert("Task Assigned ✅");
+    }
+
+    setTaskTitle("");
+    setTaskDesc("");
+    setSelectedUser("");
+    setEditingTask(null);
+
+    fetchData();
+  };
+
+  const handleDeleteTask = async (id) => {
+    const confirm = window.confirm("Delete this task?");
+
+    if (!confirm) return;
+
+    await supabase.from("tasks").delete().eq("id", id);
+
+    alert("Task Deleted ❌");
+
+    fetchData();
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setTaskTitle(task.title);
+    setTaskDesc(task.description);
+    setSelectedUser(task.assigned_to);
+  };
+
+  // ✅ Loader UI
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="loader"></div>
+      </div>
+    );
   }
-
-  const today = new Date().toISOString().split("T")[0];
-
-  if (editingTask) {
-    // ✏️ UPDATE
-    await supabase
-      .from("tasks")
-      .update({
-        title: taskTitle,
-        description: taskDesc,
-        assigned_to: selectedUser,
-      })
-      .eq("id", editingTask.id);
-
-    alert("Task Updated ✅");
-  } else {
-    // ➕ CREATE
-    await supabase.from("tasks").insert([
-      {
-        title: taskTitle,
-        description: taskDesc,
-        assigned_to: selectedUser,
-        status: "pending",
-        task_date: today,
-      },
-    ]);
-
-    alert("Task Assigned ✅");
-  }
-
-  // reset
-  setTaskTitle("");
-  setTaskDesc("");
-  setSelectedUser("");
-  setEditingTask(null);
-
-  fetchData();
-};
-const handleDeleteTask = async (id) => {
-  const confirm = window.confirm("Delete this task?");
-  if (!confirm) return;
-
-  await supabase.from("tasks").delete().eq("id", id);
-
-  alert("Task Deleted ❌");
-  fetchData();
-};
-const handleEditTask = (task) => {
-  setEditingTask(task);
-  setTaskTitle(task.title);
-  setTaskDesc(task.description);
-  setSelectedUser(task.assigned_to);
-};
 
   return (
-    
     <div className="admin-dashboard-adm">
-      <h1 className="dashboard-title-adm">Admin Control Center</h1>
-<div className="task-create-box-adm">
-  <h2>{editingTask ? "Edit Task" : "Create Task"}</h2>
+      <h1 className="dashboard-title-adm">
+        Admin Control Center
+      </h1>
 
-  <select
-    value={selectedUser}
-    onChange={(e) => setSelectedUser(e.target.value)}
-  >
-    <option value="">Select User</option>
-    {users
-      .filter((u) => u.role !== "admin")
-      .map((u) => (
-        <option key={u.id} value={u.email}>
-          {u.name}
-        </option>
+      <div className="task-create-box-adm">
+        <h2>{editingTask ? "Edit Task" : "Create Task"}</h2>
+
+        <select
+          value={selectedUser}
+          onChange={(e) => setSelectedUser(e.target.value)}
+        >
+          <option value="">Select User</option>
+
+          {users
+            .filter((u) => u.role !== "admin")
+            .map((u) => (
+              <option key={u.id} value={u.email}>
+                {u.name}
+              </option>
+            ))}
+        </select>
+
+        <input
+          placeholder="Task Title"
+          value={taskTitle}
+          onChange={(e) => setTaskTitle(e.target.value)}
+        />
+
+        <textarea
+          placeholder="Task Description"
+          value={taskDesc}
+          onChange={(e) => setTaskDesc(e.target.value)}
+        />
+
+        <button onClick={handleSaveTask}>
+          {editingTask ? "Update Task" : "Assign Task"}
+        </button>
+      </div>
+
+      <h2>All Tasks</h2>
+
+      {tasks.map((t) => (
+        <div key={t.id} className="task-card-adm">
+          <h3>{t.title}</h3>
+
+          <p>{t.description}</p>
+
+          <p>
+            <b>User:</b> {t.assigned_to}
+          </p>
+
+          <p>Status: {t.status}</p>
+
+          <button onClick={() => handleEditTask(t)}>
+            Edit
+          </button>
+
+          <button onClick={() => handleDeleteTask(t.id)}>
+            Delete
+          </button>
+        </div>
       ))}
-  </select>
 
-  <input
-    placeholder="Task Title"
-    value={taskTitle}
-    onChange={(e) => setTaskTitle(e.target.value)}
-  />
-
-  <textarea
-    placeholder="Task Description"
-    value={taskDesc}
-    onChange={(e) => setTaskDesc(e.target.value)}
-  />
-
-  <button onClick={handleSaveTask}>
-    {editingTask ? "Update Task" : "Assign Task"}
-  </button>
-</div>
-<h2>All Tasks</h2>
-
-{tasks.map((t) => (
-  <div key={t.id} className="task-card-adm">
-    <h3>{t.title}</h3>
-    <p>{t.description}</p>
-    <p><b>User:</b> {t.assigned_to}</p>
-    <p>Status: {t.status}</p>
-
-    <button onClick={() => handleEditTask(t)}>
-      Edit
-    </button>
-
-    <button onClick={() => handleDeleteTask(t.id)}>
-      Delete
-    </button>
-  </div>
-))}
       <div className="stats-grid-adm">
         <div className="stat-card-adm">
           <h2>{users.length}</h2>
           <p>Total Users</p>
         </div>
+
         <div className="stat-card-adm">
           <h2>{projects.length}</h2>
           <p>Total Projects</p>
         </div>
+
         <div className="stat-card-adm">
-          <h2>{timeEntries.length}</h2>
+          <h2>{timeentries.length}</h2>
           <p>Total Work Logs</p>
         </div>
+
         <div className="stat-card-adm">
           <h2>{logs.length}</h2>
           <p>Total Login Logs</p>
@@ -220,52 +274,68 @@ const handleEditTask = (task) => {
                   <th>Action</th>
                 </tr>
               </thead>
+
               <tbody>
                 {groupedByDate[date]
                   .filter((log) => {
-                    const user = users.find((u) => u.email === log.email);
+                    const user = users.find(
+                      (u) => u.email === log.email
+                    );
+
                     return user?.name
                       ?.toLowerCase()
                       .includes(search.toLowerCase());
                   })
                   .map((log, i2) => {
-                    const user = users.find((u) => u.email === log.email);
+                    const user = users.find(
+                      (u) => u.email === log.email
+                    );
 
-                    const entries = timeEntries.filter(
+                    const entries = timeentries.filter(
                       (t) =>
                         t.useremail === log.email &&
                         t.date &&
-                        getDate(t.date) === date,
+                        getDate(t.date) === date
                     );
 
                     const projectMap = {};
 
                     entries.forEach((e) => {
                       const p = projects.find(
-                        (pr) => pr.id == e.projectid,
+                        (pr) => pr.id == e.projectid
                       )?.title;
 
                       if (!projectMap[p]) projectMap[p] = 0;
+
                       projectMap[p] += Number(e.hours);
                     });
 
                     const detail = Object.entries(projectMap)
-                      .map(([p, h]) => `${p} (${h}h)`)
+                      .map(
+                        ([p, h]) =>
+                          `${p} (${formatHours(h)})`
+                      )
                       .join(", ");
 
                     const total = Object.values(projectMap).reduce(
                       (a, b) => a + b,
-                      0,
+                      0
                     );
 
                     return (
                       <tr key={i2}>
                         <td>{user?.name}</td>
+
                         <td>{log.email}</td>
+
                         <td>{formatDateTime(log.login)}</td>
-<td>{formatDateTime(log.logout)}</td>
+
+                        <td>{formatDateTime(log.logout)}</td>
+
                         <td>{detail}</td>
-                        <td>{total} hrs</td>
+
+                        <td>{formatHours(total)}</td>
+
                         <td>
                           <button
                             onClick={() =>
@@ -287,48 +357,60 @@ const handleEditTask = (task) => {
             </table>
           </div>
         ))}
-        {modalData && (
-  <div className="report-modal-adm">
-    <div className="report-content-adm">
-      <h2>User Work Details ({modalData.date})</h2>
 
-      {/* REPORT */}
-      <h3>Daily Report</h3>
-      <p>
-        {
-          reports.find(
-            (r) =>
-              r.useremail === modalData.email &&
-              getDate(r.report_date) === modalData.date
-          )?.report_text || "No report submitted"
-        }
-      </p>
+      {modalData && (
+        <div className="report-modal-adm">
+          <div className="report-content-adm">
+            <h2>
+              User Work Details ({modalData.date})
+            </h2>
 
-      {/* TASKS */}
-      <h3>Tasks</h3>
-      <ul>
-        {tasks
-          .filter(
-            (t) =>
-              t.assigned_to === modalData.email &&
-              getDate(t.task_date) === modalData.date
-          )
-          .map((t, i) => (
-            <li key={i}>
-              {t.title} — <b>{t.status}</b>
-            </li>
-          ))}
-      </ul>
+            {/* REPORT */}
+            <h3>Daily Report</h3>
 
-      {/* PROJECT WORK */}
-      <h3>Project Work</h3>
-      <p>{modalData.detail}</p>
-      <p><b>Total Hours: {modalData.total} hrs</b></p>
+            <p>
+              {reports.find(
+                (r) =>
+                  r.useremail === modalData.email &&
+                  getDate(r.report_date) === modalData.date
+              )?.report_text || "No report submitted"}
+            </p>
 
-      <button onClick={() => setModalData(null)}>Close</button>
-    </div>
-  </div>
-)}
+            {/* TASKS */}
+            <h3>Tasks</h3>
+
+            <ul>
+              {tasks
+                .filter(
+                  (t) =>
+                    t.assigned_to === modalData.email &&
+                    getDate(t.task_date) === modalData.date
+                )
+                .map((t, i) => (
+                  <li key={i}>
+                    {t.title} — <b>{t.status}</b>
+                  </li>
+                ))}
+            </ul>
+
+            {/* PROJECT WORK */}
+            <h3>Project Work</h3>
+
+            <p>{modalData.detail}</p>
+
+            <p>
+              <b>
+                Total Hours:{" "}
+                {formatHours(modalData.total)}
+              </b>
+            </p>
+
+            <button onClick={() => setModalData(null)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

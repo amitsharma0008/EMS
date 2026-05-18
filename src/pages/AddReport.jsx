@@ -4,7 +4,13 @@ import "../styles/AddReport.css";
 
 function AddReport() {
   const [report, setReport] = useState("");
+
+  // ✅ Button loading
   const [loading, setLoading] = useState(false);
+
+  // ✅ Page loader
+  const [pageLoading, setPageLoading] = useState(true);
+
   const [todayReportId, setTodayReportId] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
 
@@ -19,10 +25,16 @@ function AddReport() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) return;
+    if (!user) {
+      setPageLoading(false);
+      return;
+    }
 
     setUserEmail(user.email);
-    fetchTodayReport(user.email);
+
+    await fetchTodayReport(user.email);
+
+    setPageLoading(false);
   };
 
   const fetchTodayReport = async (email) => {
@@ -69,6 +81,15 @@ function AddReport() {
     setLoading(false);
   };
 
+  // ✅ Premium Loader
+  if (pageLoading) {
+    return (
+      <div className="loader-container">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="report-container-rpt" style={{ padding: "30px" }}>
       <h2 className="report-title-rpt">
@@ -84,7 +105,8 @@ function AddReport() {
         onChange={(e) => setReport(e.target.value)}
       />
 
-      <br /><br />
+      <br />
+      <br />
 
       <button
         className="report-btn-rpt"
