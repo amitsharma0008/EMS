@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 
 function ResetPassword() {
   const [password, setPassword] = useState("");
+
+  // 🔥 IMPORTANT: session set karna from URL
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      supabase.auth.getSession();
+    }
+  }, []);
 
   const handleUpdate = async () => {
     const { error } = await supabase.auth.updateUser({
@@ -13,6 +21,7 @@ function ResetPassword() {
       alert(error.message);
     } else {
       alert("Password updated successfully");
+      window.location.href = "/";
     }
   };
 
