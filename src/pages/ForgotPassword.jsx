@@ -8,16 +8,16 @@ function ForgotPassword() {
   const [email, setEmail] = useState("");
 
   const handleReset = async () => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "http://localhost:5173/reset-password",
-    });
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://ems-rho-azure.vercel.app/reset-password",
+  });
 
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("Password reset link sent to your email");
-    }
-  };
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Password reset link sent to your email");
+  }
+};
 
   return (
     <div className="forgot-page">
