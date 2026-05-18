@@ -9,7 +9,7 @@ function Dashboard() {
 
   const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
-  const [timeEntries, setTimeEntries] = useState([]);
+  const [timeentries, setTimeentries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,11 +35,11 @@ function Dashboard() {
       .select("*");
 
     const { data: timeData } = await supabase
-      .from("timeEntries")
+      .from("timeentries")
       .select("*");
 
     setProjects(projectsData || []);
-    setTimeEntries(timeData || []);
+    setTimeentries(timeData || []);
 
     setLoading(false);
   };
@@ -57,7 +57,7 @@ function Dashboard() {
     p.assigneduser.includes(user.email)
   );
 
-  const totalHours = timeEntries
+  const totalHours = timeentries
     .filter((t) => t.useremail === user.email)
     .reduce((acc, curr) => acc + Number(curr.hours), 0);
 
