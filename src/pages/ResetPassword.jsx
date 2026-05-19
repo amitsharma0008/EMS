@@ -8,11 +8,16 @@ function ResetPassword() {
 
   // 🔥 IMPORTANT: session set karna from URL
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      supabase.auth.getSession();
+  const getSessionFromUrl = async () => {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      console.log(error.message);
     }
-  }, []);
+  };
+
+  getSessionFromUrl();
+}, []);
 
   const handleUpdate = async () => {
     const { error } = await supabase.auth.updateUser({
