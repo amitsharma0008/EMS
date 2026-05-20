@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import "../styles/ResetPassword.css";
+
 
 
 function ResetPassword() {
@@ -33,20 +35,22 @@ function ResetPassword() {
   };
 
   return (
-    <div>
-      <h2>Set New Password</h2>
+  <div className="rp-wrapper">
+    <div className="rp-card">
+      <h2 className="rp-title">Set New Password</h2>
 
       <input
+        className="rp-input"
         type="password"
         placeholder="Enter new password"
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button onClick={handleUpdate}>
+      <button className="rp-btn" onClick={handleUpdate}>
         Update Password
       </button>
     </div>
-  );
-}
+  </div>
+);
 
 export default ResetPassword;
