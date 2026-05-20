@@ -52,5 +52,6 @@ function ResetPassword() {
     </div>
   </div>
 );
+}
 
 export default ResetPassword;
